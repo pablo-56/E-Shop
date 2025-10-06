@@ -4,7 +4,8 @@
 
 ### **Overview**
 
-**E-Shop** is a full-stack e-commerce platform enhanced with an integrated **AI-based product recommender system**. The application addresses key challenges in online retail for both customers and businesses — combining robust e-commerce functionality with intelligent personalization. It showcases advanced skills in full-stack development, machine learning integration, and cloud deployment.
+**E-Shop** is a full-stack e-commerce platform enhanced with an integrated **AI-based product recommender system**. The application addresses key challenges in online retail for both customers and businesses — 
+combining robust e-commerce functionality with intelligent personalization. It showcases advanced skills in full-stack development, machine learning integration, and cloud deployment.
 
 ---
 
