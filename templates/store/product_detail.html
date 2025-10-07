@@ -74,6 +74,9 @@
                     {% else %}
                         <button type="submit" class="btn btn-primary"> <span class="text">Add to Cart</span> <i class="fa fa-shopping-cart"></i> </button>
                     {% endif %}
+                    <a href="{% url 'recommend_products' single_product.id %}" class="btn btn-primary">
+                         <i class="bi bi-stars"></i> View Similar Products
+                    </a>
                 </article>
             </form>
         </main>

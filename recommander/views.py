@@ -1,83 +1,21 @@
-from .models import SimilarityModel
-from django_pandas.io import read_frame
-from category.models import Category
-from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render, get_object_or_404
 from store.models import Product
-from django.db.utils import OperationalError, ProgrammingError
+from .utils import train_similarity_model, get_recommendations
 
-def train_model_init():
-    """
-    Creates the 'product_similarity' record in the database, trains the model and saves it in the database. 
-    This is done if one does not already exist in the database.
-    """
-    try:
-        if Product.objects.all().count() > 0:
-            message = ""
-            if SimilarityModel.objects.filter(name='product_similarity').exists() == False:
-                qs = Product.objects.all()
-                df = read_frame(qs, fieldnames=['id', 'name', 'description'])
+df, cosine_sim = train_similarity_model()
 
-                similarity_model = SimilarityModel(name='product_similarity')
-
-                # Compute and save the similarity data
-                similarity_model.save_similarity_data(df)
-                message = "Training complete."
-            else:
-                message = "Already trained."
-
-            return message
-    except (OperationalError, ProgrammingError) as e:    
-        # Database is not ready yet
-        return "Database not ready."    
-
-# Define a function to get the top n similar products
-
-
-def get_similar_products(pk, n=3):
-    """
-    Gets similar products to a product when given the UUID of a product.
-    Loads up the saved pickle model and uses it determine product similarity.
-    Returns a list containing product id's
-    """
-    product_queryset = Product.objects.filter(id=pk)
-    result = ""
-    if product_queryset.exists():
-        product_queryset = product_queryset.values()
-        # Fetch similarity model
-        similarity_model = SimilarityModel.objects.get(
-            name='product_similarity')
-        tfidf_matrix, cosine_sim = similarity_model.get_similarity_matrices()
-
-        # Read all products
-        qs = Product.objects.all()
-        df = read_frame(qs, fieldnames=['id', 'name', 'description'])
-
-        # Get the index of the product
-        index = df[df['id'] == product_queryset[0]["id"]].index[0]
-
-        # Get the cosine similarity scores for the product
-        sim_scores = list(enumerate(cosine_sim[index]))
-
-        # Sort the products by similarity score, in descending order
-        sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-
-        # Get the top n similar products
-        sim_scores = sim_scores[1:n+1]
-
-        # Get the indices and similarity scores of the similar products
-        indices = [i[0] for i in sim_scores]
-        scores = [i[1] for i in sim_scores]
-
-        # Return a dataframe with the similar products
-        similar_products = df.loc[indices, ['id', 'name', 'description']]
-        similar_products['score'] = scores
-
-        # Extract product ids
-        products = similar_products["id"]
-        products = products.tolist()
-
-        result = products
-    else:
-        result = []
-
-    return result
+def recommend_products(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    recommended_df = get_recommendations(product_id, df, cosine_sim)
+    
+    recommended_products = Product.objects.filter(id__in=recommended_df['id'].tolist())
+    
+    
+    product_count = recommended_products.count()  # 👈 count the results
+    
+    return render(request, 'recommender/recommendations.html', {
+        'product': product,
+        'recommended_products': recommended_products,
+        'product_count': product_count,
+    })
+# You can call train_similarity_model() periodically or via a management command to update the model    
